@@ -1,5 +1,6 @@
 import streamlit as st
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import create_tool_calling_agent
+from langchain.agents.agent import AgentExecutor
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from tools import tools, analyze_agricultural_data
@@ -334,4 +335,5 @@ st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
    
 </div>
+
 """, unsafe_allow_html=True)
