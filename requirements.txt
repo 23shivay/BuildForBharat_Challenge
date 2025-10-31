@@ -1,10 +1,10 @@
 streamlit
 langchain
-langchain-core
+langgraph
 langchain-groq
-requests
-numpy
-pandas
-pydantic
 python-dotenv
+requests
+pandas
+numpy
+pydantic
 groq
