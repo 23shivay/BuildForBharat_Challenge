@@ -337,36 +337,23 @@ if prompt := st.chat_input("Ask your agricultural data question..."):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing data from government APIs..."):
-            try:
-                enhanced_prompt = f"""
-Query: {prompt}
+    with st.spinner("Analyzing data from government APIs..."):
+        try:
+            response = agent_executor.invoke(
+                {"messages": [{"role": "user", "content": enhanced_prompt}]}
+            )
 
-Instructions for tool usage:
-1. Identify the query type:
-   - Rainfall comparison + top crops → metric='COMPARE_ALL', specify crop_type
-   - Max/min district production → metric='MAX_MIN_CROP', specify crop_z
-   - Trend/correlation/policy → metric='POLICY_ADVICE'
+            # ✅ Fix for LangGraph return type
+            output = response.content if hasattr(response, "content") else str(response)
 
-2. Extract parameters:
-   - States mentioned → state_x and state_y
-   - Time period (e.g., "last 5 years") → years parameter
-   - Crop category (Pulses, Cereals) → crop_type
-   - Specific crop (Rice, Wheat) → crop_z
+            st.markdown(output)
+            st.session_state.messages.append({"role": "assistant", "content": output})
 
-3. Call the tool and present results with citations.
-"""
-                
-                response = agent_executor.invoke({"input": enhanced_prompt})
-                output = response['output']
-                
-                st.markdown(output)
-                st.session_state.messages.append({"role": "assistant", "content": output})
-                
-            except Exception as e:
-                error_msg = f"I encountered an error: {str(e)}\n\nPlease try a different question or check the API status."
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        except Exception as e:
+            error_msg = f"I encountered an error: {str(e)}\n\nPlease try a different question or check the API status."
+            st.error(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
 
 # ==============================================================================
 # FOOTER
@@ -378,5 +365,6 @@ st.markdown("""
    
 </div>
 """, unsafe_allow_html=True)
+
 
 
