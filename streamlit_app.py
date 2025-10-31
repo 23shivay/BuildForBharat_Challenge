@@ -1,6 +1,7 @@
 import streamlit as st
-from langchain.agents import create_tool_calling_agent
-from langchain.agents.agent import AgentExecutor
+# from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from tools import tools, analyze_agricultural_data
@@ -56,8 +57,6 @@ st.markdown(f"""
 **Project Samarth** integrates live data from **data.gov.in** (Ministry of Agriculture & IMD) to answer complex queries 
 about India's agricultural economy and climate patterns.
 
-**Data Coverage:** Analysis period covers **{CURRENT_ANALYSIS_YEAR - DEMO_YEARS + 1}-{CURRENT_ANALYSIS_YEAR}** 
-(constrained by API data availability).
 
 **Data Sources:**
 - 🌾 Crop Production: District-wise production data across India
@@ -170,53 +169,92 @@ st.sidebar.markdown("""
 # INITIALIZE LLM & AGENT
 
 @st.cache_resource
+# def initialize_agent():
+#     """Initialize and cache the LangChain agent."""
+#     try:
+#         llm = ChatGroq(
+#             temperature=0.0,
+#             groq_api_key=GROQ_API_KEY,
+#             model_name="llama-3.3-70b-versatile"
+#         )
+        
+#         system_prompt = """You are Samarth, an intelligent Q&A system for Indian agricultural and climate data.
+
+# Your capabilities:
+# 1. Answer questions by calling the 'analyze_agricultural_data' tool
+# 2. Synthesize data into clear, comprehensive responses
+# 3. Always cite data sources from the 'citations' field in tool output
+
+# Guidelines:
+# - Use the tool for ALL data analysis - never calculate manually
+# - For rainfall comparisons: use metric='COMPARE_ALL' with crop_type
+# - For max/min queries: use metric='MAX_MIN_CROP' with crop_z
+# - For policy/correlation: use metric='POLICY_ADVICE'
+# - Always include source citations in your response
+# - If data is unavailable, explain what's missing and why
+
+# Response format:
+# 1. Direct answer to the query
+# 2. Key insights from the data
+# 3. Source citations at the end
+# """
+        
+#         prompt = ChatPromptTemplate.from_messages([
+#             ("system", system_prompt),
+#             ("human", "{input}"),
+#             ("placeholder", "{agent_scratchpad}"),
+#         ])
+        
+#         agent = create_tool_calling_agent(llm, tools, prompt)
+#         agent_executor = AgentExecutor(
+#             agent=agent,
+#             tools=tools,
+#             verbose=True,
+#             handle_parsing_errors=True,
+#             max_iterations=5
+#         )
+        
+#         return agent_executor
+    
+
+        
+    
+#     except Exception as e:
+#         st.error(f"Failed to initialize agent: {str(e)}")
+#         return None
+
+
+
+@st.cache_resource
 def initialize_agent():
-    """Initialize and cache the LangChain agent."""
+    """Initialize and cache the LangGraph ReAct agent."""
     try:
+        from langchain_groq import ChatGroq
+
         llm = ChatGroq(
             temperature=0.0,
             groq_api_key=GROQ_API_KEY,
             model_name="llama-3.3-70b-versatile"
         )
-        
+
         system_prompt = """You are Samarth, an intelligent Q&A system for Indian agricultural and climate data.
 
-Your capabilities:
-1. Answer questions by calling the 'analyze_agricultural_data' tool
-2. Synthesize data into clear, comprehensive responses
-3. Always cite data sources from the 'citations' field in tool output
+Use the available tools to answer queries, analyze rainfall and crop production,
+and always provide structured, data-backed insights with proper citations."""
 
-Guidelines:
-- Use the tool for ALL data analysis - never calculate manually
-- For rainfall comparisons: use metric='COMPARE_ALL' with crop_type
-- For max/min queries: use metric='MAX_MIN_CROP' with crop_z
-- For policy/correlation: use metric='POLICY_ADVICE'
-- Always include source citations in your response
-- If data is unavailable, explain what's missing and why
+        # 🧠 Memory for conversation context
+        memory = MemorySaver()
 
-Response format:
-1. Direct answer to the query
-2. Key insights from the data
-3. Source citations at the end
-"""
-        
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{input}"),
-            ("placeholder", "{agent_scratchpad}"),
-        ])
-        
-        agent = create_tool_calling_agent(llm, tools, prompt)
-        agent_executor = AgentExecutor(
-            agent=agent,
+        # ✅ Create new-style ReAct agent (replacement for AgentExecutor + create_tool_calling_agent)
+        agent_executor = create_react_agent(
+            model=llm,
             tools=tools,
-            verbose=True,
-            handle_parsing_errors=True,
-            max_iterations=5
+            checkpoint=memory,
+            prompt=system_prompt
         )
-        
+
         return agent_executor
-    
+
     except Exception as e:
         st.error(f"Failed to initialize agent: {str(e)}")
         return None
@@ -277,8 +315,11 @@ Instructions for tool usage:
 3. Call the tool and present results with citations.
 """
                 
-                response = agent_executor.invoke({"input": enhanced_prompt})
-                output = response['output']
+                # response = agent_executor.invoke({"input": enhanced_prompt})
+                # output = response['output']
+                response = agent_executor.invoke({"messages": [{"role": "user", "content": enhanced_prompt}]})
+                output = response["messages"][-1]["content"]
+
                 
                 st.markdown(output)
                 st.session_state.messages.append({"role": "assistant", "content": output})
@@ -335,5 +376,4 @@ st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
    
 </div>
-
 """, unsafe_allow_html=True)
