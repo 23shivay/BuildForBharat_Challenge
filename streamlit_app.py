@@ -64,7 +64,7 @@ st.sidebar.title("📋 Sample Questions")
 sample_questions = {
     "Q1: Compare Rainfall & Pulses": 
         "Compare the average annual rainfall in Maharashtra and Karnataka for the last 5 years. Also list their top 3 pulse crops.",
-    "Q1b: Kerala Alternative": 
+    "Q1b: Kerala Vs Utter Pradesh": 
         "Compare the average annual rainfall in Kerala and Karnataka for the last 5 years. Also list their top 3 pulse crops.",
     "Q2: Max/Min Districts": 
         "Identify the district in Maharashtra with the highest production of Rice and compare with the district with the lowest production of Rice in Karnataka.",
@@ -247,6 +247,7 @@ if user_input := st.chat_input("Ask your agricultural data question..."):
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
-Built with ❤️ using Streamlit, LangGraph, and Groq API.
+
 </div>
 """, unsafe_allow_html=True)
+
