@@ -247,11 +247,12 @@ and always provide structured, data-backed insights with proper citations."""
 
         # ✅ Create new-style ReAct agent (replacement for AgentExecutor + create_tool_calling_agent)
         agent_executor = create_react_agent(
-            model=llm,
-            tools=tools,
-            checkpoint=memory,
-            prompt=system_prompt
+        model=llm,
+        tools=tools,
+        checkpointer=memory,   # ✅ correct argument name
+        prompt=system_prompt
         )
+
 
         return agent_executor
 
@@ -377,3 +378,4 @@ st.markdown("""
    
 </div>
 """, unsafe_allow_html=True)
+
