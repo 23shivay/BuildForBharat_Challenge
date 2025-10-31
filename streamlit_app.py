@@ -192,31 +192,26 @@ for message in st.session_state.messages:
 # HANDLE SIDEBAR QUESTION SELECTION
 # ==============================================================================
 
-if 'selected_question' in st.session_state:
-    prompt = st.session_state['selected_question']
-    del st.session_state['selected_question']
-
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
+def handle_query(prompt):
+    """Handles a query and returns formatted output."""
     with st.chat_message("assistant"):
         with st.spinner("Analyzing data from government APIs..."):
             try:
-                enhanced_prompt = f"""
-Query: {prompt}
-
-Instructions for tool usage:
-- Use 'COMPARE_ALL' for rainfall comparison & crop_type
-- Use 'MAX_MIN_CROP' for max/min crop queries
-- Use 'POLICY_ADVICE' for policy/trend queries
-"""
                 response = agent_executor.invoke(
-                    {"messages": [{"role": "user", "content": enhanced_prompt}]}
+                    {"messages": [{"role": "user", "content": prompt}]}
                 )
 
-                # ✅ Proper LangGraph response handling
-                output = response.content if hasattr(response, "content") else str(response)
+                # ✅ Compatible response extraction (Cloud + Local)
+                if hasattr(response, "content"):
+                    output = response.content
+                elif isinstance(response, dict) and "messages" in response:
+                    messages = response.get("messages", [])
+                    if messages and hasattr(messages[-1], "content"):
+                        output = messages[-1].content
+                    else:
+                        output = str(response)
+                else:
+                    output = str(response)
 
                 st.markdown(output)
                 st.session_state.messages.append({"role": "assistant", "content": output})
@@ -226,6 +221,15 @@ Instructions for tool usage:
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
+
+# Sidebar question handler
+if 'selected_question' in st.session_state:
+    question = st.session_state.pop('selected_question')
+    st.session_state.messages.append({"role": "user", "content": question})
+    with st.chat_message("user"):
+        st.markdown(question)
+    handle_query(question)
+
 # ==============================================================================
 # HANDLE CHAT INPUT
 # ==============================================================================
@@ -234,23 +238,7 @@ if user_input := st.chat_input("Ask your agricultural data question..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Analyzing data from government APIs..."):
-            try:
-                response = agent_executor.invoke(
-                    {"messages": [{"role": "user", "content": user_input}]}
-                )
-
-                output = response.content if hasattr(response, "content") else str(response)
-
-                st.markdown(output)
-                st.session_state.messages.append({"role": "assistant", "content": output})
-
-            except Exception as e:
-                error_msg = f"I encountered an error: {str(e)}"
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+    handle_query(user_input)
 
 # ==============================================================================
 # FOOTER
