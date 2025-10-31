@@ -2,7 +2,7 @@ import requests
 import json
 import numpy as np
 from typing import Dict, List, Any, Optional
-from langchain.tools import StructuredTool
+from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from config import *
 
@@ -542,5 +542,6 @@ analyze_agricultural_data = StructuredTool.from_function(
     args_schema=AgDataToolInput,
     return_direct=False
 )
+
 
 tools = [analyze_agricultural_data]
